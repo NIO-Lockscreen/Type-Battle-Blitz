@@ -13,24 +13,6 @@ export const WORD_PACKS = [
 
 export const DEFAULT_CUSTOM_WORDS = ['firefly', 'nio', 'turbo', 'laser', 'legend', 'combo', 'clutch', 'rocket', 'shadow', 'victory'];
 
-export const SEED_RUNS = [
-  { id: 'seed-nova', playerName: 'Nova', packId: 'neon-ninjas', packName: 'Neon Ninjas', totalMs: 4860, wpm: 105, createdAt: '2026-01-01T10:00:00.000Z', words: WORD_PACKS[0].words, wordTimes: WORD_PACKS[0].words.map((word, i) => ({ word, ms: [380, 450, 430, 560, 510, 440, 460, 480, 520, 630][i] })) },
-  { id: 'seed-bytekid', playerName: 'ByteKid', packId: 'tech-core', packName: 'Tech Core', totalMs: 5120, wpm: 98, createdAt: '2026-01-02T10:00:00.000Z', words: WORD_PACKS[8].words, wordTimes: WORD_PACKS[8].words.map((word, i) => ({ word, ms: [300, 510, 620, 670, 570, 520, 480, 590, 440, 420][i] })) },
-  { id: 'seed-soniccat', playerName: 'SonicCat', packId: 'animal-rush', packName: 'Animal Rush', totalMs: 5380, wpm: 94, createdAt: '2026-01-03T10:00:00.000Z', words: WORD_PACKS[7].words, wordTimes: WORD_PACKS[7].words.map((word, i) => ({ word, ms: [214, 560, 520, 620, 610, 590, 550, 610, 570, 535][i] })) },
-  { id: 'seed-rocketrun', playerName: 'RocketRon', packId: 'space-race', packName: 'Space Race', totalMs: 5660, wpm: 90, createdAt: '2026-01-04T10:00:00.000Z', words: WORD_PACKS[2].words, wordTimes: WORD_PACKS[2].words.map((word, i) => ({ word, ms: [470, 490, 680, 570, 640, 600, 580, 352, 650, 628][i] })) },
-  { id: 'seed-pizzaboss', playerName: 'PizzaBoss', packId: 'snack-attack', packName: 'Snack Attack', totalMs: 5890, wpm: 87, createdAt: '2026-01-05T10:00:00.000Z', words: WORD_PACKS[5].words, wordTimes: WORD_PACKS[5].words.map((word, i) => ({ word, ms: [300, 420, 610, 670, 550, 650, 610, 520, 580, 980][i] })) },
-];
-
-export const SEED_WORD_RECORDS = [
-  { word: 'yeet', playerName: 'Mika', ms: 188, packName: 'Meme Lords', createdAt: '2026-01-06T10:00:00.000Z' },
-  { word: 'fox', playerName: 'Sofia', ms: 214, packName: 'Animal Rush', createdAt: '2026-01-07T10:00:00.000Z' },
-  { word: 'boss', playerName: 'Kai', ms: 230, packName: 'Gamer Loot', createdAt: '2026-01-08T10:00:00.000Z' },
-  { word: 'rocket', playerName: 'Nova', ms: 352, packName: 'Space Race', createdAt: '2026-01-09T10:00:00.000Z' },
-  { word: 'matrix', playerName: 'ByteKid', ms: 421, packName: 'Tech Core', createdAt: '2026-01-10T10:00:00.000Z' },
-  { word: 'dragon', playerName: 'Rune', ms: 440, packName: 'Monster Mash', createdAt: '2026-01-11T10:00:00.000Z' },
-  { word: 'pizza', playerName: 'Leo', ms: 300, packName: 'Snack Attack', createdAt: '2026-01-12T10:00:00.000Z' },
-  { word: 'shadow', playerName: 'Zara', ms: 402, packName: 'Neon Ninjas', createdAt: '2026-01-13T10:00:00.000Z' },
-];
 
 export function normalizeWord(word) {
   return String(word || '')

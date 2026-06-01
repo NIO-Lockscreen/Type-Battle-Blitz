@@ -5,8 +5,6 @@ import './styles.css';
 import {
   WORD_PACKS,
   DEFAULT_CUSTOM_WORDS,
-  SEED_RUNS,
-  SEED_WORD_RECORDS,
   battleCodeFor,
   cleanWords,
   decodeChallenge,
@@ -17,11 +15,6 @@ import {
 } from './gameData.js';
 
 const APP_VERSION = '1.0.0';
-const RIVALS = [
-  { playerName: 'TurboToast', totalMs: 6100, wordTimes: [410, 580, 620, 700, 550, 590, 610, 660, 640, 740] },
-  { playerName: 'KeyboardGoblin', totalMs: 6880, wordTimes: [530, 660, 680, 720, 610, 700, 690, 750, 690, 850] },
-  { playerName: 'GhostPlayer', totalMs: 7920, wordTimes: [620, 740, 810, 900, 720, 860, 810, 840, 830, 790] },
-];
 
 function fmt(ms) {
   return Number.isFinite(Number(ms)) ? `${(Number(ms) / 1000).toFixed(3)}s` : '—';
@@ -37,16 +30,11 @@ function makeBattleId() {
 }
 
 function wordRecordFallback(word) {
-  const seed = SEED_WORD_RECORDS.find((record) => record.word === word);
-  if (seed) return seed;
-  let hash = 0;
-  for (const char of word) hash = (hash * 33 + char.charCodeAt(0)) >>> 0;
-  const names = ['Nova', 'ByteKid', 'Mika', 'Kai', 'Zara', 'Sofia'];
-  return { word, playerName: names[hash % names.length], ms: 260 + (hash % 500), packName: 'Seed', createdAt: '2026-01-01T00:00:00.000Z' };
+  return { word, playerName: 'No record yet', ms: Infinity, packName: '', createdAt: '' };
 }
 
 function buildWordRecordsFromSeeds() {
-  return [...SEED_WORD_RECORDS].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return [];
 }
 
 function App() {
@@ -67,7 +55,7 @@ function App() {
   const [times, setTimes] = React.useState([]);
   const [practiceWord, setPracticeWord] = React.useState('blade');
   const [practiceBest, setPracticeBest] = React.useState(() => JSON.parse(localStorage.getItem('tbb:practiceBest') || '{}'));
-  const [leaderboard, setLeaderboard] = React.useState({ globalTop: SEED_RUNS, newestWordRecords: buildWordRecordsFromSeeds(), wordRecords: SEED_WORD_RECORDS, runCount: 0, blobConfigured: false });
+  const [leaderboard, setLeaderboard] = React.useState({ globalTop: [], newestWordRecords: [], wordRecords: [], runCount: 0, blobConfigured: false });
   const [battleRuns, setBattleRuns] = React.useState([]);
   const [targetRival, setTargetRival] = React.useState(null);
   const [apiStatus, setApiStatus] = React.useState('checking');
@@ -409,14 +397,6 @@ function App() {
 
   const visibleBattleRows = React.useMemo(() => {
     const serverRows = battleRuns.map((run) => ({ ...run, source: 'server' }));
-    const demoRows = RIVALS.map((rival) => ({
-      ...rival,
-      id: `demo-${rival.playerName}`,
-      packName: isCustomRun ? 'Custom Battle' : currentPack.name,
-      words: runWords,
-      wordTimes: runWords.map((word, i) => ({ word, ms: rival.wordTimes[i] || 700 })),
-      source: 'demo',
-    }));
     const yourFinishedRun = phase === 'done' && mode === 'battle' && times.length === 10 ? [{
       id: 'local-you',
       playerName: compactName(playerName),
@@ -426,12 +406,12 @@ function App() {
       wordTimes: times,
       source: 'local',
     }] : [];
-    return [...yourFinishedRun, ...serverRows, ...demoRows]
+    return [...yourFinishedRun, ...serverRows]
       .sort((a, b) => Number(a.totalMs) - Number(b.totalMs))
       .slice(0, 12);
   }, [battleRuns, currentPack.name, isCustomRun, mode, phase, playerName, runWords, times, totalMs]);
 
-  const newestTicker = leaderboard.newestWordRecords?.length ? leaderboard.newestWordRecords : buildWordRecordsFromSeeds();
+  const newestTicker = leaderboard.newestWordRecords || [];
   const rivalForResults = targetRival || visibleBattleRows.find((row) => row.playerName !== compactName(playerName));
 
   return (
@@ -452,11 +432,15 @@ function App() {
         </div>
         <div className="ticker-wrap">
           <div className="ticker-row">
-            {[...newestTicker, ...newestTicker].map((record, index) => (
-              <button key={`${record.word}-${record.createdAt}-${index}`} className="ticker-pill" onClick={(event) => { event.stopPropagation(); startPractice(record.word); }}>
-                ⚡ {record.word.toUpperCase()} record: {record.playerName} · {record.ms}ms · TRY IT
-              </button>
-            ))}
+            {newestTicker.length > 0 ? (
+              [...newestTicker, ...newestTicker].map((record, index) => (
+                <button key={`${record.word}-${record.createdAt}-${index}`} className="ticker-pill" onClick={(event) => { event.stopPropagation(); startPractice(record.word); }}>
+                  ⚡ {record.word.toUpperCase()} record: {record.playerName} · {record.ms}ms · TRY IT
+                </button>
+              ))
+            ) : (
+              <div className="ticker-pill" style={{ pointerEvents: 'none' }}>⚡ Be the first to set word records! Pick a word and start practicing.</div>
+            )}
           </div>
         </div>
       </header>
@@ -683,32 +667,40 @@ function App() {
             <div className="side-head"><h2>Global Top 10</h2><Trophy size={20} /></div>
             <p className="mini-note">Kun innebygde pakker teller her. Custom blir aldri global.</p>
             <div className="board-list">
-              {(leaderboard.globalTop || SEED_RUNS).map((run, index) => (
-                <div key={`${run.id}-${index}`} className="top-row">
-                  <div><b>{index + 1}. {run.playerName}</b><span>{run.packName}</span></div>
-                  <strong>{fmt(run.totalMs)}</strong>
-                  <button onClick={() => {
-                    const pack = getPackById(run.packId);
-                    if (pack) {
-                      setPackId(pack.id);
-                      setCustomMode(false);
-                      startBattle(pack.words, false, makeBattleId(), null);
-                    }
-                  }}>Challenge same list</button>
-                </div>
-              ))}
+              {(leaderboard.globalTop || []).length > 0 ? (
+                (leaderboard.globalTop || []).map((run, index) => (
+                  <div key={`${run.id}-${index}`} className="top-row">
+                    <div><b>{index + 1}. {run.playerName}</b><span>{run.packName}</span></div>
+                    <strong>{fmt(run.totalMs)}</strong>
+                    <button onClick={() => {
+                      const pack = getPackById(run.packId);
+                      if (pack) {
+                        setPackId(pack.id);
+                        setCustomMode(false);
+                        startBattle(pack.words, false, makeBattleId(), null);
+                      }
+                    }}>Challenge same list</button>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '1rem', color: '#999' }}>No records yet. Be the first!</div>
+              )}
             </div>
           </section>
 
           <section className="panel side-panel">
             <div className="side-head"><h2>Newest beaten words</h2><Target size={20} /></div>
             <div className="record-list">
-              {newestTicker.slice(0, 8).map((record, index) => (
-                <button key={`${record.word}-${record.createdAt}`} onClick={() => startPractice(record.word)}>
-                  <span>{index + 1}. <b>{record.word}</b></span>
-                  <strong>{record.playerName} · {fmt(record.ms)}</strong>
-                </button>
-              ))}
+              {newestTicker.length > 0 ? (
+                newestTicker.slice(0, 8).map((record, index) => (
+                  <button key={`${record.word}-${record.createdAt}`} onClick={() => startPractice(record.word)}>
+                    <span>{index + 1}. <b>{record.word}</b></span>
+                    <strong>{record.playerName} · {fmt(record.ms)}</strong>
+                  </button>
+                ))
+              ) : (
+                <div style={{ padding: '1rem', color: '#999' }}>No word records yet. Set some records!</div>
+              )}
             </div>
           </section>
         </aside>

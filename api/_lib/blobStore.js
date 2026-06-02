@@ -1,4 +1,4 @@
-import { list, put } from '@vercel/blob';
+import { get, list, put } from '@vercel/blob';
 
 export const STORAGE_PREFIX = 'type-battle-blitz-v1';
 
@@ -45,9 +45,14 @@ export async function readJsonBlobs(prefix, limitPages = 5) {
   const blobs = await listAll(prefix, limitPages);
   const rows = await Promise.allSettled(
     blobs.map(async (blob) => {
-      const response = await fetch(blob.url, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Could not fetch ${blob.pathname}`);
-      const json = await response.json();
+      // Blobs are written with `access: 'private'`, so they are NOT readable via a
+      // plain unauthenticated `fetch(blob.url)`. Use the SDK's `get()` which attaches
+      // the BLOB_READ_WRITE_TOKEN authorization header (and also reads public blobs).
+      const result = await get(blob.url, { access: 'private', useCache: false });
+      if (!result || result.statusCode !== 200 || !result.stream) {
+        throw new Error(`Could not fetch ${blob.pathname}`);
+      }
+      const json = await new Response(result.stream).json();
       return { ...json, blobPathname: blob.pathname, blobUploadedAt: blob.uploadedAt };
     })
   );

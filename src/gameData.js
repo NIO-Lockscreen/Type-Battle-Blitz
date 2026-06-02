@@ -13,6 +13,8 @@ export const WORD_PACKS = [
 
 export const DEFAULT_CUSTOM_WORDS = ['firefly', 'nio', 'turbo', 'laser', 'legend', 'combo', 'clutch', 'rocket', 'shadow', 'victory'];
 
+export const SEED_RUNS = [];
+export const SEED_WORD_RECORDS = [];
 
 export function normalizeWord(word) {
   return String(word || '')

@@ -79,7 +79,9 @@ function App() {
   const totalMs = times.reduce((sum, item) => sum + item.ms, 0);
   const progress = currentWord ? Math.round((typed.length / currentWord.length) * 100) : 0;
   const bestPracticeTry = times.length ? Math.min(...times.map((item) => item.ms)) : practiceBest[practiceWord];
-  const currentRecord = (leaderboard.wordRecords || []).find((record) => record.word === practiceWord) || wordRecordFallback(practiceWord);
+  const globalRecord = (leaderboard.wordRecords || []).find((record) => record.word === practiceWord);
+  const localBestMs = practiceBest[practiceWord];
+  const currentRecord = globalRecord || (Number.isFinite(localBestMs) ? { word: practiceWord, playerName: 'You', ms: localBestMs, packName: '', createdAt: '' } : wordRecordFallback(practiceWord));
   const challengePayload = React.useMemo(() => ({
     type: isCustomRun ? 'custom' : 'pack',
     packId: isCustomRun ? null : currentPack.id,

@@ -391,9 +391,41 @@ function App() {
     }
   }
 
+  async function submitPracticeRecord() {
+    const best = Math.min(...times.map((item) => item.ms));
+    if (submitted || mode !== 'practice' || best >= (currentRecord.ms || Infinity)) return;
+    setSubmitted(true);
+    const body = {
+      playerName: compactName(playerName),
+      word: currentWord,
+      ms: best,
+      userAgent: navigator.userAgent,
+      appVersion: APP_VERSION,
+    };
+
+    try {
+      const response = await fetch('/api/submit-practice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await response.json();
+      if (!json.ok) throw new Error(json.error || 'Kunne ikke lagre record');
+      showToast('Word record lagret online!');
+      await loadLeaderboard();
+    } catch (error) {
+      setSubmitted(false);
+      showToast(error.message || 'Kunne ikke lagre online');
+    }
+  }
+
   React.useEffect(() => {
     if (phase === 'done' && mode === 'battle' && times.length === 10 && !submitted) submitBattleRun();
   }, [phase, mode, times.length, submitted]);
+
+  React.useEffect(() => {
+    if (phase === 'done' && mode === 'practice' && !submitted) submitPracticeRecord();
+  }, [phase, mode, submitted]);
 
   const visibleBattleRows = React.useMemo(() => {
     const serverRows = battleRuns.map((run) => ({ ...run, source: 'server' }));

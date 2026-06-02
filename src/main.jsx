@@ -60,6 +60,7 @@ function App() {
   const [targetRival, setTargetRival] = React.useState(null);
   const [apiStatus, setApiStatus] = React.useState('checking');
   const [toast, setToast] = React.useState(null);
+  const [errorMsg, setErrorMsg] = React.useState(null);
   const [liveMs, setLiveMs] = React.useState(0);
   const [shake, setShake] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
@@ -157,9 +158,11 @@ function App() {
       } else {
         setLeaderboard((current) => ({ ...current, ...json }));
         setApiStatus('preview');
+        showError(`Leaderboard load failed: ${json.error || 'unknown server error'}`);
       }
-    } catch {
+    } catch (error) {
       setApiStatus('preview');
+      showError(`Could not reach leaderboard API: ${error.message}`);
     }
   }
 
@@ -222,6 +225,15 @@ function App() {
     setTimeout(() => setToast(null), 1500);
   }
 
+  // Persistent, prominent error surface. Stays on screen until the user
+  // dismisses it so failures (e.g. failed saves / leaderboard reads) are
+  // easy to read and debug instead of vanishing like a toast.
+  function showError(message) {
+    if (!message) return;
+    console.error('[Type Battle Blitz]', message);
+    setErrorMsg({ message: String(message), id: Date.now() });
+  }
+
   function goHome() {
     setPhase('menu');
     setMode('battle');
@@ -240,7 +252,7 @@ function App() {
   function startBattle(words = selectedWords, custom = customMode, battleId = currentBattleId, rival = null) {
     const clean = cleanWords(words);
     if (clean.length !== 10) {
-      showToast('Du trenger akkurat 10 gyldige ord.');
+      showError('Du trenger akkurat 10 gyldige ord for å starte en battle.');
       return;
     }
     setPendingWords(clean);
@@ -279,7 +291,7 @@ function App() {
   function loadChallenge(rawValue, autoStart = false) {
     const payload = resolveChallenge(rawValue, battleWords, isCustomRun, currentPack.id);
     if (!payload?.words?.length) {
-      showToast('Ugyldig battle-lenke eller kode.');
+      showError('Ugyldig battle-lenke eller kode.');
       return;
     }
     const words = cleanWords(payload.words);
@@ -389,7 +401,7 @@ function App() {
       await Promise.all([loadLeaderboard(), loadBattleRuns(currentBattleId)]);
     } catch (error) {
       setSubmitted(false);
-      showToast(error.message || 'Kunne ikke lagre online');
+      showError(`Kunne ikke lagre battle online: ${error.message || 'ukjent feil'}`);
     }
   }
 
@@ -418,7 +430,7 @@ function App() {
       await loadLeaderboard();
     } catch (error) {
       setSubmitted(false);
-      showToast(error.message || 'Kunne ikke lagre online');
+      showError(`Kunne ikke lagre record online: ${error.message || 'ukjent feil'}`);
     }
   }
 
@@ -451,6 +463,19 @@ function App() {
       <div className="aurora a1" />
       <div className="aurora a2" />
       <div className="aurora a3" />
+
+      {errorMsg && (
+        <div className="error-banner" role="alert" aria-live="assertive">
+          <div className="error-banner-inner">
+            <span className="error-banner-icon">⚠️</span>
+            <div className="error-banner-text">
+              <strong>Error</strong>
+              <span>{errorMsg.message}</span>
+            </div>
+            <button className="error-banner-dismiss" onClick={() => setErrorMsg(null)} aria-label="Dismiss error">✕ Dismiss</button>
+          </div>
+        </div>
+      )}
 
       <header className="topbar" onClick={goHome}>
         <div className="header-inner">

@@ -79,7 +79,9 @@ function App() {
   const totalMs = times.reduce((sum, item) => sum + item.ms, 0);
   const progress = currentWord ? Math.round((typed.length / currentWord.length) * 100) : 0;
   const bestPracticeTry = times.length ? Math.min(...times.map((item) => item.ms)) : practiceBest[practiceWord];
-  const currentRecord = (leaderboard.wordRecords || []).find((record) => record.word === practiceWord) || wordRecordFallback(practiceWord);
+  const globalRecord = (leaderboard.wordRecords || []).find((record) => record.word === practiceWord);
+  const localBestMs = practiceBest[practiceWord];
+  const currentRecord = globalRecord || (Number.isFinite(localBestMs) ? { word: practiceWord, playerName: 'You', ms: localBestMs, packName: '', createdAt: '' } : wordRecordFallback(practiceWord));
   const challengePayload = React.useMemo(() => ({
     type: isCustomRun ? 'custom' : 'pack',
     packId: isCustomRun ? null : currentPack.id,
@@ -391,8 +393,38 @@ function App() {
     }
   }
 
+  async function submitPracticeRecord() {
+    if (submitted || mode !== 'practice' || times.length === 0) return;
+    setSubmitted(true);
+    const bestTime = Math.min(...times.map((t) => t.ms));
+    const body = {
+      mode: 'practice',
+      playerName: compactName(playerName),
+      words: [practiceWord],
+      wordTimes: [{ word: practiceWord, ms: bestTime }],
+      userAgent: navigator.userAgent,
+      appVersion: APP_VERSION,
+    };
+
+    try {
+      const response = await fetch('/api/submit-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await response.json();
+      if (!json.ok) throw new Error(json.error || 'Kunne ikke lagre score');
+      showToast(json.stored ? 'Record lagret online' : 'Record ferdig lokalt');
+      await loadLeaderboard();
+    } catch (error) {
+      setSubmitted(false);
+      showToast(error.message || 'Kunne ikke lagre online');
+    }
+  }
+
   React.useEffect(() => {
     if (phase === 'done' && mode === 'battle' && times.length === 10 && !submitted) submitBattleRun();
+    if (phase === 'done' && mode === 'practice' && times.length > 0 && !submitted) submitPracticeRecord();
   }, [phase, mode, times.length, submitted]);
 
   const visibleBattleRows = React.useMemo(() => {

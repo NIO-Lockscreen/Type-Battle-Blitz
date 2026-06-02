@@ -15,9 +15,12 @@ export function safeNumber(value) {
 }
 
 export function normalizeSubmittedRun(body, nowIso = new Date().toISOString()) {
+  const isPractice = body?.mode === 'practice';
   const words = cleanWords(body?.words || []);
-  if (words.length !== 10) {
-    throw new Error('A battle must contain exactly 10 valid words.');
+  const expectedLength = isPractice ? 1 : 10;
+
+  if (words.length !== expectedLength) {
+    throw new Error(isPractice ? 'Practice mode requires exactly 1 word.' : 'A battle must contain exactly 10 valid words.');
   }
 
   const wordTimesRaw = Array.isArray(body?.wordTimes) ? body.wordTimes : [];
@@ -40,11 +43,12 @@ export function normalizeSubmittedRun(body, nowIso = new Date().toISOString()) {
   const totalMs = wordTimes.reduce((sum, item) => sum + item.ms, 0);
   const custom = Boolean(body?.custom);
   const pack = getPackById(body?.packId);
-  const globalEligible = !custom && Boolean(pack) && arraysEqual(words, pack.words);
+  const globalEligible = isPractice ? true : (!custom && Boolean(pack) && arraysEqual(words, pack.words));
   const chars = words.join('').length;
   const wpm = Math.max(1, Math.round((chars / 5) / (totalMs / 60000)));
 
   return {
+    mode: isPractice ? 'practice' : 'battle',
     playerName: sanitizePlayerName(body?.playerName),
     packId: pack?.id || null,
     packName: pack?.name || (custom ? 'Custom Battle' : 'Unknown Pack'),
@@ -72,7 +76,7 @@ export function aggregateLeaderboard(realRuns = []) {
   const runs = [...SEED_RUNS, ...realRuns].filter((run) => run && run.globalEligible !== false && !run.custom);
 
   const globalTop = [...runs]
-    .filter((run) => Number.isFinite(Number(run.totalMs)))
+    .filter((run) => run.mode !== 'practice' && Number.isFinite(Number(run.totalMs)))
     .sort((a, b) => Number(a.totalMs) - Number(b.totalMs) || new Date(a.createdAt) - new Date(b.createdAt))
     .slice(0, 10);
 

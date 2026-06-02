@@ -457,6 +457,12 @@ function App() {
 
   const newestTicker = leaderboard.newestWordRecords || [];
   const rivalForResults = targetRival || visibleBattleRows.find((row) => row.playerName !== compactName(playerName));
+  const battleRecordsBeaten = (phase === 'done' && mode === 'battle')
+    ? times.filter((item) => {
+        const record = (leaderboard.wordRecords || []).find((r) => r.word === item.word);
+        return record && Number.isFinite(record.ms) && item.ms <= record.ms;
+      }).length
+    : 0;
 
   return (
     <div className="app-shell">
@@ -666,10 +672,12 @@ function App() {
 
           {phase === 'done' && mode === 'battle' && (
             <div className="done-screen">
-              <div className="result-card">
+              {battleRecordsBeaten > 0 && <Confetti />}
+              <div className={battleRecordsBeaten > 0 ? 'result-card victory' : 'result-card'}>
                 <div className="eyebrow">Battle complete</div>
                 <h2>{fmt(totalMs)}</h2>
                 <p>{compactName(playerName)} finished 10 words. {submitted ? 'Online save attempted.' : 'Saving...'}</p>
+                {battleRecordsBeaten > 0 && <p className="green big-win-note">⭐ {battleRecordsBeaten} new word record{battleRecordsBeaten > 1 ? 's' : ''} set!</p>}
                 {isCustomRun && <p className="pink">Custom challenge: ikke Global Top 10.</p>}
               </div>
 
@@ -677,15 +685,27 @@ function App() {
                 {times.map((item, index) => {
                   const record = (leaderboard.wordRecords || []).find((r) => r.word === item.word) || wordRecordFallback(item.word);
                   const rivalMs = rivalForResults?.wordTimes?.[index]?.ms;
-                  const worldWin = item.ms <= record.ms;
+                  const worldWin = Number.isFinite(record.ms) && item.ms <= record.ms;
                   const youWin = Number.isFinite(rivalMs) && item.ms < rivalMs;
                   const rivalWin = Number.isFinite(rivalMs) && rivalMs < item.ms;
+                  const deltaVsRecord = Number.isFinite(record.ms) ? item.ms - record.ms : null;
+                  const rowClass = worldWin ? 'word-result world' : youWin ? 'word-result won' : rivalWin ? 'word-result lost' : deltaVsRecord > 0 ? 'word-result behind' : 'word-result';
+                  const statusKey = worldWin ? 'record' : youWin ? 'won' : rivalWin ? 'lost' : deltaVsRecord > 0 ? 'behind' : '';
+                  const statusLabel = worldWin ? '⭐ RECORD' : youWin ? '✓ WON' : rivalWin ? '✕ LOST' : deltaVsRecord > 0 ? 'BEHIND' : '';
                   return (
-                    <div key={`${item.word}-${index}`} className={worldWin ? 'word-result world' : youWin ? 'word-result won' : 'word-result'}>
+                    <div key={`${item.word}-${index}`} className={rowClass}>
+                      {worldWin && <Sparkles />}
                       <div className="rank-dot">{worldWin ? '⭐' : index + 1}</div>
-                      <div className="word-meta"><b>{item.word}</b><span>Fastest ever: {fmt(record.ms)} by {record.playerName}</span></div>
+                      <div className="word-meta">
+                        <div className="word-meta-top"><b>{item.word}</b>{statusLabel && <span className={`status-pill ${statusKey}`}>{statusLabel}</span>}</div>
+                        <span>Fastest ever: {fmt(record.ms)} by {record.playerName}</span>
+                      </div>
                       <div className="compare-grid">
-                        <div className={worldWin || youWin ? 'mine win' : 'mine'}><span>You</span><b>{fmt(item.ms)}</b></div>
+                        <div className={worldWin || youWin ? 'mine win' : 'mine'}>
+                          <span>You</span>
+                          <b>{fmt(item.ms)}</b>
+                          {deltaVsRecord !== null && <em className={deltaVsRecord <= 0 ? 'delta good' : 'delta bad'}>{deltaVsRecord <= 0 ? `−${fmt(-deltaVsRecord)}` : `+${fmt(deltaVsRecord)}`}</em>}
+                        </div>
                         <div className={rivalWin ? 'rival win' : 'rival'}><span>{rivalForResults?.playerName || 'Rival'}</span><b>{fmt(rivalMs)}</b></div>
                         <div><span>Record</span><b>{fmt(record.ms)}</b></div>
                       </div>
@@ -768,6 +788,14 @@ function App() {
 
 function Confetti() {
   return <div className="confetti-layer">{Array.from({ length: 42 }).map((_, i) => <i key={i} style={{ left: `${(i * 17) % 100}%`, animationDelay: `${(i % 9) * 0.08}s`, background: i % 3 === 0 ? '#34d399' : i % 3 === 1 ? '#facc15' : '#22d3ee' }} />)}</div>;
+}
+
+function Sparkles() {
+  const spots = [
+    { left: '6%', top: '18%' }, { left: '20%', top: '64%' }, { left: '40%', top: '24%' },
+    { left: '58%', top: '70%' }, { left: '76%', top: '30%' }, { left: '90%', top: '60%' },
+  ];
+  return <div className="sparkle-layer">{spots.map((spot, i) => <i key={i} style={{ left: spot.left, top: spot.top, animationDelay: `${i * 0.14}s` }}>✨</i>)}</div>;
 }
 
 createRoot(document.getElementById('root')).render(<App />);

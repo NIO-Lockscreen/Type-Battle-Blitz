@@ -92,3 +92,34 @@ test('practice word records appear in leaderboard', () => {
   assert.ok(board.newestWordRecords.some((r) => r.word === 'blade' && r.playerName === 'Practitioner'));
   assert.equal(board.wordRecords.some((r) => r.word === 'blade' && r.ms === 350), true);
 });
+
+test('practice runs never pollute the Global Top 10', () => {
+  const fullBattle = {
+    id: 'full-battle',
+    playerName: 'BattleHero',
+    packId: WORD_PACKS[0].id,
+    packName: WORD_PACKS[0].name,
+    custom: false,
+    globalEligible: true,
+    totalMs: 4000,
+    createdAt: '2026-02-01T10:00:00.000Z',
+    wordTimes: WORD_PACKS[0].words.map((word) => ({ word, ms: 400 })),
+  };
+  const practiceRun = {
+    id: 'practice-run',
+    mode: 'practice',
+    playerName: 'Practitioner',
+    words: ['blade'],
+    wordTimes: [{ word: 'blade', ms: 50 }],
+    totalMs: 50,
+    globalEligible: true,
+    custom: false,
+    createdAt: '2026-02-01T12:00:00.000Z',
+  };
+  const board = aggregateLeaderboard([practiceRun, fullBattle]);
+  // Despite the practice run having a far lower totalMs (50 vs 4000),
+  // it must NOT appear in the Global Top 10 (which is for 10-word battles only).
+  assert.equal(board.globalTop.length, 1);
+  assert.equal(board.globalTop[0].playerName, 'BattleHero');
+  assert.equal(board.globalTop.some((run) => run.mode === 'practice'), false);
+});

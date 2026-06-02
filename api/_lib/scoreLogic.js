@@ -76,7 +76,7 @@ export function aggregateLeaderboard(realRuns = []) {
   const runs = [...SEED_RUNS, ...realRuns].filter((run) => run && run.globalEligible !== false && !run.custom);
 
   const globalTop = [...runs]
-    .filter((run) => Number.isFinite(Number(run.totalMs)))
+    .filter((run) => run.mode !== 'practice' && Number.isFinite(Number(run.totalMs)))
     .sort((a, b) => Number(a.totalMs) - Number(b.totalMs) || new Date(a.createdAt) - new Date(b.createdAt))
     .slice(0, 10);
 

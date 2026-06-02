@@ -60,3 +60,35 @@ test('aggregate leaderboard sorts by fastest total and newest word records', () 
   assert.equal(board.globalTop[0].playerName, 'Speedy');
   assert.equal(board.newestWordRecords[0].playerName, 'Speedy');
 });
+
+test('practice mode submission with single word is globally eligible', () => {
+  const practice = normalizeSubmittedRun({
+    mode: 'practice',
+    playerName: 'Practitioner',
+    words: ['blade'],
+    wordTimes: [{ word: 'blade', ms: 350 }],
+  }, '2026-02-01T12:00:00.000Z');
+  assert.equal(practice.globalEligible, true);
+  assert.equal(practice.custom, false);
+  assert.equal(practice.mode, 'practice');
+  assert.equal(practice.words.length, 1);
+  assert.equal(practice.wordTimes[0].word, 'blade');
+  assert.equal(practice.wordTimes[0].ms, 350);
+});
+
+test('practice word records appear in leaderboard', () => {
+  const practiceRun = {
+    id: 'practice-run',
+    mode: 'practice',
+    playerName: 'Practitioner',
+    words: ['blade'],
+    wordTimes: [{ word: 'blade', ms: 350 }],
+    totalMs: 350,
+    globalEligible: true,
+    custom: false,
+    createdAt: '2026-02-01T12:00:00.000Z',
+  };
+  const board = aggregateLeaderboard([practiceRun]);
+  assert.ok(board.newestWordRecords.some((r) => r.word === 'blade' && r.playerName === 'Practitioner'));
+  assert.equal(board.wordRecords.some((r) => r.word === 'blade' && r.ms === 350), true);
+});

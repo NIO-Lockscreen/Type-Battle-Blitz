@@ -12,7 +12,7 @@ export async function writeJson(path, data) {
   }
   const pathname = `${STORAGE_PREFIX}/${path}`;
   return put(pathname, JSON.stringify(data), {
-    access: 'public',
+    access: 'private',
     addRandomSuffix: false,
     contentType: 'application/json',
     cacheControlMaxAge: 60,
